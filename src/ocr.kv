@@ -1,0 +1,28 @@
+#:kivy 2.1.0
+
+<FileSelectScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: "Choose file"
+            size_hint: (1,0.2)
+        FileChooserListView:
+            id: filechooser
+            path: "."
+            on_submit: 
+                root.manager.load_image(filechooser.selection)
+                root.manager.current = 'image_preview'
+        Widget:
+            size_hint: (1,0.25)
+            Button:
+                center_x: self.parent.center_x
+                top: self.parent.top - 10
+                height: 50
+                text: "Select"
+                on_release: root.load(filechooser.path, filechooser.selection)
+
+<ImagePreviewScreen>:
+    Image:
+        id: image_p
+        source: ""
+        opacity: 0
