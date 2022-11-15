@@ -1,28 +1,82 @@
-#:kivy 2.1.0
+    #:kivy 2.1.0
 
 <FileSelectScreen>:
     BoxLayout:
         orientation: 'vertical'
         Label:
-            text: "Choose file"
+            text: "Choose an image file"
+            font_size: 24
             size_hint: (1,0.2)
         FileChooserListView:
             id: filechooser
             path: "."
+            on_selection: select_file_btn.disabled = False
             on_submit: 
                 root.manager.load_image(filechooser.selection)
                 root.manager.current = 'image_preview'
         Widget:
             size_hint: (1,0.25)
             Button:
+                id: select_file_btn
                 center_x: self.parent.center_x
                 top: self.parent.top - 10
                 height: 50
                 text: "Select"
-                on_release: root.load(filechooser.path, filechooser.selection)
+                disabled: True
+                on_press:
+                    root.manager.load_image(filechooser.selection)
+                    root.manager.current = 'image_preview'
 
 <ImagePreviewScreen>:
-    Image:
-        id: image_p
-        source: ""
-        opacity: 0
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: "Select the article(s) from the image"
+            font_size: 24
+            size_hint: (1,0.2)
+        Image:
+            id: image_p
+            source: ""
+            opacity: 0
+        Widget:
+            size_hint: (1,0.2)
+            Button:
+                id: undo_btn
+                text: "< Undo"
+                disabled: True
+                height: 50
+                width: 50
+                on_press: root.undo_selection(self)
+            Button:
+                center_x: self.parent.center_x
+                top: self.parent.top - 10
+                height: 50
+                text: "Submit"
+                on_press: root.submit_image()
+
+<ArticlePreviewScreen>:
+    Label:
+        text: "Processing..."
+        center: self.parent.center
+        id: processing_text
+    ScrollView:
+        height: root.height
+        size_hint: (1, None)
+        do_scroll_x: False
+        GridLayout:
+            cols: 1
+            size_hint: (1, None)
+            height: self.minimum_height
+            id: articles
+        
+<MyTextInput>:
+    multiline: True
+    size_hint_y: None
+    size_hint_x: 1
+    height: self.minimum_height
+
+<MyLabel>:
+    font_size: 20
+    size_hint: (1, None)
+    text_size: root.width, None
+    size: self.texture_size
