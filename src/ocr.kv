@@ -1,4 +1,5 @@
-    #:kivy 2.1.0
+#:kivy 2.1.0
+#:import path os.path
 
 <FileSelectScreen>:
     BoxLayout:
@@ -11,6 +12,7 @@
             id: filechooser
             path: "."
             on_selection: select_file_btn.disabled = False
+            filters: ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tiff", "*.tif"]
             on_submit: 
                 root.manager.load_image(filechooser.selection)
                 root.manager.current = 'image_preview'
@@ -33,26 +35,85 @@
         Label:
             text: "Select the article(s) from the image"
             font_size: 24
-            size_hint: (1,0.2)
+            size_hint: (1,0.15)
         Image:
             id: image_p
             source: ""
             opacity: 0
-        Widget:
+        BoxLayout:
             size_hint: (1,0.2)
-            Button:
-                id: undo_btn
-                text: "< Undo"
-                disabled: True
-                height: 50
-                width: 50
-                on_press: root.undo_selection(self)
-            Button:
-                center_x: self.parent.center_x
-                top: self.parent.top - 10
-                height: 50
-                text: "Submit"
-                on_press: root.submit_image()
+            orientation: 'horizontal'
+            GridLayout:
+                rows: 1
+                size_hint: (0.5, 1)
+                Label:
+                    text: "Choose a mode:"
+                AnchorLayout:
+                    BoxLayout:
+                        orientation: 'vertical'
+                        height: 75
+                        spacing: 5
+                        size_hint_y: None
+                        pos_hint: {'center_y': 0.5}
+                        Button:
+                            canvas.before:
+                                Color:
+                                    rgba: 0,0.7,1,0.5
+                                Rectangle:
+                                    size: self.size
+                                    pos: self.pos
+                            id: article_btn
+                            text: "Select article"
+                            disabled_color: 1, 1, 1, 1
+                            disabled: True
+                            on_press: 
+                                root.current_mode = 'A'
+                                self.disabled = True
+                                exclude_btn.disabled = False
+                        Button:
+                            canvas.before:
+                                Color:
+                                    rgba: 0,0.7,1,0.5
+                                Rectangle:
+                                    size: self.size
+                                    pos: self.pos
+                            id: exclude_btn
+                            disabled_color: 1, 1, 1, 1
+                            text: "Exclude from article"
+                            on_press: 
+                                root.current_mode = 'E'
+                                self.disabled = True
+                                article_btn.disabled = False
+                AnchorLayout:
+                    size_hint_x: None
+                    width: 60
+                    BoxLayout:
+                        orientation: 'vertical'
+                        height: 75
+                        spacing: 5
+                        size_hint_y: None
+                        pos_hint: {'center_y': 0.5}
+                        Button:
+                            id: undo_article_btn
+                            text: "< Undo"
+                            disabled: True
+                            on_press: root.undo_selection(self,"A")
+                        Button:
+                            id: undo_exclude_btn
+                            text: "< Undo"
+                            disabled: True
+                            on_press: root.undo_selection(self,"E")
+            Widget:
+                size_hint: (0.5, 1)
+                Button:
+                    center: self.parent.center
+                    text_size: (100,50)
+                    font_size: 20
+                    valign: 'center'
+                    halign: 'center'
+                    size: self.texture_size
+                    text: "Submit"
+                    on_press: root.submit_image()
 
 <ArticlePreviewScreen>:
     Label:
@@ -68,6 +129,47 @@
             size_hint: (1, None)
             height: self.minimum_height
             id: articles
+
+<SaveScreen>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        padding: [50, 0]
+        orientation: "vertical"
+        Label:
+            text: "Save the generated file"
+            font_size: 24
+            size_hint: (1,0.15)
+        FileChooserIconView:
+            id: filechooser
+            rootpath: path.expanduser('~')
+            filters: [lambda folder, filename: not filename.endswith('')]
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            orientation: 'horizontal'
+            Label:
+                size_hint_x: None
+                text: "File name:"
+                text_size: self.size
+                halign: 'right'
+                valign: 'middle'
+                padding: (5,0)
+            TextInput:
+                id: text_input
+                size_hint_y: 1
+                multiline: False
+
+        FloatLayout:
+            size_hint_y: 0.15
+            Button:
+                size_hint: (None, None)
+                text: "Save"
+                height: 50
+                width: 80
+                center: self.parent.center
+                on_release: root.save(filechooser.path, text_input.text)
         
 <MyTextInput>:
     multiline: True

@@ -1,11 +1,12 @@
-# from PIL import Image
 from sys import argv
+import os
 from io import StringIO
 from statistics import median
 
 import pandas as pd
 import pytesseract
 from PIL import Image as Im
+from PIL import ImageDraw
 import kivy
 kivy.require('2.1.0') # replace with your current kivy version !
 
@@ -17,7 +18,7 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.image import Image
 from kivy.uix.filechooser import FileChooserIconView
-from kivy.properties import StringProperty, BooleanProperty, ListProperty, NumericProperty
+from kivy.properties import StringProperty, BooleanProperty, ListProperty, NumericProperty, ObjectProperty
 from kivy.graphics import Color, Ellipse, Rectangle
 from kivy.utils import get_color_from_hex
 
@@ -34,11 +35,14 @@ class FileSelectScreen(Screen):
     pass
 
 class ImagePreviewScreen(Screen):
-    drawing_mode = BooleanProperty()
-    rectangles = ListProperty()
+    drawing = BooleanProperty()
+    current_mode = StringProperty()
+    rectangles_articles = ListProperty()
+    rectangles_exclude = ListProperty()
 
     def on_enter(self, *args):
-        self.drawing_mode = False
+        self.drawing = False
+        self.current_mode = "A"
         self.ids.image_p.source = self.manager.image_source
         self.ids.image_p.opacity = 1
         self.ids.image_p.reload()
@@ -54,26 +58,37 @@ class ImagePreviewScreen(Screen):
         max_y = image.center_y + image.norm_image_size[1] // 2
 
         if min_x <= touch.x <= max_x and min_y <= touch.y <= max_y:
-            self.drawing_mode = True
+            self.drawing = True
+            if self.current_mode == "A":
+                rectangles = self.rectangles_articles
+                self.canvas.add(Color(rgba=get_color_from_hex("#ffff6666")))
+            elif self.current_mode == "E":
+                rectangles = self.rectangles_exclude
+                self.canvas.add(Color(rgba=get_color_from_hex("#ff666666")))
             r = Rectangle(pos=touch.pos, size=(1,1))
-            self.rectangles.append({
+            rectangles.append({
                 'rect': r,
                 'original_x': (touch.x - (image.center_x - image.norm_image_size[0] / 2)) * image.texture_size[0] / image.norm_image_size[0],
                 'original_y': (touch.y - (image.center_y - image.norm_image_size[1] / 2)) * image.texture_size[1] / image.norm_image_size[1],
             })
-            self.canvas.add(Color(rgba=get_color_from_hex("#ffff6666")))
             self.canvas.add(r)
         else:
             return super().on_touch_down(touch)
 
     def on_touch_up(self, touch):
-        self.drawing_mode = False
-        if len(self.rectangles) > 0:
-            self.ids.undo_btn.disabled = False
+        self.drawing = False
+        if len(self.rectangles_articles) > 0:
+            self.ids.undo_article_btn.disabled = False
+        if len(self.rectangles_exclude) > 0:
+            self.ids.undo_exclude_btn.disabled = False
 
     def on_touch_move(self, touch):
-        if self.drawing_mode:
-            r = self.rectangles[-1]
+        if self.drawing:
+            if self.current_mode == "A":
+                rectangles = self.rectangles_articles
+            elif self.current_mode == "E":
+                rectangles = self.rectangles_exclude
+            r = rectangles[-1]
             (x,y) = r['rect'].pos
 
             min_x = self.ids.image_p.center_x - self.ids.image_p.norm_image_size[0] // 2
@@ -92,28 +107,45 @@ class ImagePreviewScreen(Screen):
 
     def on_resize(self, instance, value):
 
-        for r in self.rectangles:
+        for r in self.rectangles_articles + self.rectangles_exclude:
             r['rect'].pos = (r['original_x'] * instance.norm_image_size[0] / instance.texture_size[0] + (instance.center_x - instance.norm_image_size[0] / 2),
                             r['original_y'] * instance.norm_image_size[1] / instance.texture_size[1] + (instance.center_y - instance.norm_image_size[1] / 2))
 
             r['rect'].size = (r['original_width'] * instance.norm_image_size[0] / instance.texture_size[0],
                               r['original_height'] * instance.norm_image_size[1] / instance.texture_size[1])
 
-    def undo_selection(self, btn):
-        if len(self.rectangles) > 0:
-            r = self.rectangles.pop(-1)
+    def undo_selection(self, btn, mode):
+        if mode == 'A':
+            rectangles = self.rectangles_articles
+        elif mode == 'E':
+            rectangles = self.rectangles_exclude
+        if len(rectangles) > 0:
+            r = rectangles.pop(-1)
             self.canvas.remove(r['rect'])
-        if len(self.rectangles) == 0:
+        if len(rectangles) == 0:
             btn.disabled = True
 
     def submit_image(self):
+        get_left = lambda r: r['original_x'] if r['original_width'] > 0 else r['original_x'] + r['original_width']
+        get_right = lambda r: r['original_x'] if r['original_width'] < 0 else r['original_x'] + r['original_width']
+        get_top = lambda r, h: h - r['original_y'] if r['original_height'] < 0 else h - (r['original_y'] + r['original_height'])
+        get_bottom = lambda r, h: h - r['original_y'] if r['original_height'] > 0 else h - (r['original_y'] + r['original_height'])
+
         im = Im.open(self.manager.image_source)
-        if len(self.rectangles) > 0:
-            for r in self.rectangles:
-                left = r['original_x'] if r['original_width'] > 0 else r['original_x'] + r['original_width']
-                right = r['original_x'] if r['original_width'] < 0 else r['original_x'] + r['original_width']
-                top = im.height - r['original_y'] if r['original_height'] < 0 else im.height - (r['original_y'] + r['original_height'])
-                bottom = im.height - r['original_y'] if r['original_height'] > 0 else im.height - (r['original_y'] + r['original_height'])
+        if len(self.rectangles_exclude) > 0:
+            draw = ImageDraw.Draw(im)
+            for r in self.rectangles_exclude:
+                left = get_left(r)
+                right = get_right(r)
+                top = get_top(r, im.height)
+                bottom = get_bottom(r, im.height)
+                draw.rectangle([left,top,right,bottom], fill="black")
+        if len(self.rectangles_articles) > 0:
+            for r in self.rectangles_articles:
+                left = get_left(r)
+                right = get_right(r)
+                top = get_top(r, im.height)
+                bottom = get_bottom(r, im.height)
                 self.manager.article_images.append(im.crop((left,top,right,bottom)))
         else:
             self.manager.article_images.append(im)
@@ -124,17 +156,27 @@ class ArticlePreviewScreen(Screen):
     def on_enter(self, *args):
         for im in self.manager.article_images:
             a = Article(im)
+            self.manager.articles.append(a)
             # ti = MyTextInput(text=str(a))
             ti = MyLabel(text=str(a))
             self.ids.articles.add_widget(ti)
             sep = Widget(height=200, size_hint=(1,None))
             self.ids.articles.add_widget(sep)
         self.ids.processing_text.opacity = 0
+        self.manager.current = 'save'
         return super().on_enter(*args)
+
+class SaveScreen(Screen):
+    def save(self, filepath, filename):
+        with open(os.path.join(filepath, filename + ".md"), "w", encoding='UTF-8') as f:
+            for article in self.manager.articles:
+                f.write(str(article) + "\n\n")
+        OCRApp.get_running_app().stop()
 
 class MyScreenManager(ScreenManager):
     image_source = StringProperty()
     article_images = ListProperty()
+    articles = ListProperty()
 
     def load_image(self, selection):
         self.image_source = selection[0]
@@ -151,10 +193,10 @@ class OCRApp(App):
 
     def build(self):
         sm = MyScreenManager()
-
         sm.add_widget(FileSelectScreen(name='file_select'))
         sm.add_widget(ImagePreviewScreen(name='image_preview'))
         sm.add_widget(ArticlePreviewScreen(name='article_preview'))
+        sm.add_widget(SaveScreen(name='save'))
         return sm
 
 if __name__ == '__main__':

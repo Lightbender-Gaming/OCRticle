@@ -36,7 +36,7 @@ class Article():
         self.blocks = blocks
 
     def __str__(self) -> str:
-        return '\n---\n'.join(str(x) for x in self.blocks)
+        return '\n\n---\n'.join(str(x) for x in self.blocks)
 
     def optimize(self) -> None:
         new_blocks = []
@@ -64,7 +64,7 @@ class Block():
         self.line_height = None
 
     def __str__(self) -> str:
-        return '\n\n\t'.join(str(x) for x in self.paragraphs)
+        return '\n\n'.join(str(x) for x in self.paragraphs)
 
     def optimize(self) -> None:
         new_paragraphs = []
