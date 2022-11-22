@@ -19,9 +19,11 @@ from kivy.uix.image import Image
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.properties import StringProperty, BooleanProperty, ListProperty, NumericProperty, ObjectProperty
 from kivy.graphics import Color, Ellipse, Rectangle
+from kivy.graphics import Line as KVLine
 from kivy.utils import get_color_from_hex
 
 from article import Article, Block, Paragraph, Line
+import geometry
 
 # class FileSelect(GridLayout):
 #     def __init__(self, **kwargs):
@@ -57,6 +59,7 @@ class ImagePreviewScreen(Screen):
         max_y = image.center_y + image.norm_image_size[1] // 2
 
         if min_x <= touch.x <= max_x and min_y <= touch.y <= max_y:
+            print(touch.x, touch.y)
             self.drawing = True
             if self.current_mode == "A":
                 rectangles = self.rectangles_articles
@@ -66,7 +69,7 @@ class ImagePreviewScreen(Screen):
                 self.canvas.add(Color(rgba=get_color_from_hex("#ff666666")))
             r = Rectangle(pos=touch.pos, size=(1,1))
             rectangles.append({
-                'rect': r,
+                'rects': [r],
                 'original_x': (touch.x - (image.center_x - image.norm_image_size[0] / 2)) * image.texture_size[0] / image.norm_image_size[0],
                 'original_y': (touch.y - (image.center_y - image.norm_image_size[1] / 2)) * image.texture_size[1] / image.norm_image_size[1],
             })
@@ -75,6 +78,17 @@ class ImagePreviewScreen(Screen):
             return super().on_touch_down(touch)
 
     def on_touch_up(self, touch):
+        if self.drawing and self.current_mode == "A":
+            r = self.rectangles_articles[-1]
+            self.canvas.remove(r['rects'][-1])
+
+            line = KVLine(points=geometry.calc_line_points(r), width=1.5, close=True)
+
+            self.canvas.add(Color(rgb=get_color_from_hex("#ffff66")))
+            self.canvas.add(line)
+
+            r['line'] = line
+
         self.drawing = False
         if len(self.rectangles_articles) > 0:
             self.ids.undo_article_btn.disabled = False
@@ -88,7 +102,8 @@ class ImagePreviewScreen(Screen):
             elif self.current_mode == "E":
                 rectangles = self.rectangles_exclude
             r = rectangles[-1]
-            (x,y) = r['rect'].pos
+            rr = r['rects'][-1]
+            (x,y) = rr.pos
 
             min_x = self.ids.image_p.center_x - self.ids.image_p.norm_image_size[0] // 2
             max_x = self.ids.image_p.center_x + self.ids.image_p.norm_image_size[0] // 2
@@ -98,7 +113,7 @@ class ImagePreviewScreen(Screen):
             width = (touch.x if min_x <= touch.x <= max_x else (min_x if touch.x < min_x else max_x)) - x
             height = (touch.y if min_y <= touch.y <= max_y else (min_y if touch.y < min_y else max_y)) - y
 
-            r['rect'].size = (width, height)
+            rr.size = (width, height)
             r['original_width'] = width * self.ids.image_p.texture_size[0] / self.ids.image_p.norm_image_size[0]
             r['original_height'] = height * self.ids.image_p.texture_size[1] / self.ids.image_p.norm_image_size[1]
         else:
@@ -106,12 +121,28 @@ class ImagePreviewScreen(Screen):
 
     def on_resize(self, instance, value):
 
-        for r in self.rectangles_articles + self.rectangles_exclude:
+        for r in self.rectangles_exclude:
             r['rect'].pos = (r['original_x'] * instance.norm_image_size[0] / instance.texture_size[0] + (instance.center_x - instance.norm_image_size[0] / 2),
                             r['original_y'] * instance.norm_image_size[1] / instance.texture_size[1] + (instance.center_y - instance.norm_image_size[1] / 2))
 
             r['rect'].size = (r['original_width'] * instance.norm_image_size[0] / instance.texture_size[0],
                               r['original_height'] * instance.norm_image_size[1] / instance.texture_size[1])
+
+        for rects in self.rectangles_articles:
+            for r in rects['rects']:
+                r.pos = (rects['original_x'] * instance.norm_image_size[0] / instance.texture_size[0] + (instance.center_x - instance.norm_image_size[0] / 2),
+                         rects['original_y'] * instance.norm_image_size[1] / instance.texture_size[1] + (instance.center_y - instance.norm_image_size[1] / 2))
+
+                r.size = (rects['original_width'] * instance.norm_image_size[0] / instance.texture_size[0],
+                          rects['original_height'] * instance.norm_image_size[1] / instance.texture_size[1])
+
+
+        for r in self.rectangles_articles:
+            self.canvas.remove(r['line'])
+
+            r['line'] = KVLine(points=geometry.calc_line_points(r), width=1.5, close=True)
+            self.canvas.add(Color(rgb=get_color_from_hex("#ffff66")))
+            self.canvas.add(r['line'])
 
     def undo_selection(self, btn, mode):
         if mode == 'A':
@@ -120,7 +151,8 @@ class ImagePreviewScreen(Screen):
             rectangles = self.rectangles_exclude
         if len(rectangles) > 0:
             r = rectangles.pop(-1)
-            self.canvas.remove(r['rect'])
+            #self.canvas.remove(r['rect'])
+            self.canvas.remove(r.get('line', r['rect']))
         if len(rectangles) == 0:
             btn.disabled = True
 

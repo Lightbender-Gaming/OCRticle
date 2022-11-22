@@ -96,7 +96,7 @@ class Paragraph():
         self.height = None
 
     def __str__(self) -> str:
-        return '\n'.join(str(x) for x in self.lines)
+        return ' '.join(str(x) for x in self.lines)
     
     def get_line_height(self) -> int:
         if self.height:
