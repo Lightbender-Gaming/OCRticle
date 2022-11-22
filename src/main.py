@@ -1,5 +1,4 @@
-from sys import argv
-import os
+import os, sys, subprocess
 from io import StringIO
 from statistics import median
 
@@ -168,9 +167,15 @@ class ArticlePreviewScreen(Screen):
 
 class SaveScreen(Screen):
     def save(self, filepath, filename):
-        with open(os.path.join(filepath, filename + ".md"), "w", encoding='UTF-8') as f:
+        file = os.path.join(filepath, filename + ".md")
+        with open(file, "w", encoding='UTF-8') as f:
             for article in self.manager.articles:
-                f.write(str(article) + "\n\n")
+                f.write(str(article) + "\n\n---\n\n")
+        if sys.platform == "win32":
+            os.startfile(file)
+        else:
+            opener = "open" if sys.platform == "darwin" else "xdg-open"
+            subprocess.call([opener, file])
         OCRApp.get_running_app().stop()
 
 class MyScreenManager(ScreenManager):
@@ -200,7 +205,7 @@ class OCRApp(App):
         return sm
 
 if __name__ == '__main__':
-    if len(argv) == 1:
+    if len(sys.argv) == 1:
         OCRApp().run()
     else:
         pass
