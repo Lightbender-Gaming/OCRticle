@@ -44,6 +44,8 @@ class ImagePreviewScreen(Screen):
     def on_enter(self, *args):
         self.drawing = False
         self.current_mode = "A"
+        self.rectangles_articles = []
+        self.rectangles_exclude = []
         self.ids.image_p.source = self.manager.image_source
         self.ids.image_p.opacity = 1
         self.ids.image_p.reload()
@@ -59,7 +61,6 @@ class ImagePreviewScreen(Screen):
         max_y = image.center_y + image.norm_image_size[1] // 2
 
         if min_x <= touch.x <= max_x and min_y <= touch.y <= max_y:
-            print(touch.x, touch.y)
             self.drawing = True
             if self.current_mode == "A":
                 rectangles = self.rectangles_articles
@@ -68,11 +69,27 @@ class ImagePreviewScreen(Screen):
                 rectangles = self.rectangles_exclude
                 self.canvas.add(Color(rgba=get_color_from_hex("#ff666666")))
             r = Rectangle(pos=touch.pos, size=(1,1))
-            rectangles.append({
-                'rects': [r],
-                'original_x': (touch.x - (image.center_x - image.norm_image_size[0] / 2)) * image.texture_size[0] / image.norm_image_size[0],
-                'original_y': (touch.y - (image.center_y - image.norm_image_size[1] / 2)) * image.texture_size[1] / image.norm_image_size[1],
-            })
+            if self.current_mode == "A" and len(rectangles) > 0 and geometry.point_in_rects((touch.x,touch.y), rectangles[-1]['rects']):
+                rectangles[-1]['rects'].append({
+                    'rect': r,
+                    'original_x': (touch.x - (image.center_x - image.norm_image_size[0] / 2)) * image.texture_size[0] / image.norm_image_size[0],
+                    'original_y': (touch.y - (image.center_y - image.norm_image_size[1] / 2)) * image.texture_size[1] / image.norm_image_size[1],
+                })
+            else:
+                if self.current_mode == "A":
+                    rectangles.append({
+                        'rects': [{
+                            'rect': r,
+                            'original_x': (touch.x - (image.center_x - image.norm_image_size[0] / 2)) * image.texture_size[0] / image.norm_image_size[0],
+                            'original_y': (touch.y - (image.center_y - image.norm_image_size[1] / 2)) * image.texture_size[1] / image.norm_image_size[1],
+                        }]
+                    })
+                else:
+                    rectangles.append({
+                        'rect': r,
+                        'original_x': (touch.x - (image.center_x - image.norm_image_size[0] / 2)) * image.texture_size[0] / image.norm_image_size[0],
+                        'original_y': (touch.y - (image.center_y - image.norm_image_size[1] / 2)) * image.texture_size[1] / image.norm_image_size[1],
+                    })
             self.canvas.add(r)
         else:
             return super().on_touch_down(touch)
@@ -80,9 +97,11 @@ class ImagePreviewScreen(Screen):
     def on_touch_up(self, touch):
         if self.drawing and self.current_mode == "A":
             r = self.rectangles_articles[-1]
-            self.canvas.remove(r['rects'][-1])
+            self.canvas.remove(r['rects'][-1]['rect'])
+            if 'line' in r:
+                self.canvas.remove(r['line'])
 
-            line = KVLine(points=geometry.calc_line_points(r), width=1.5, close=True)
+            line = KVLine(points=geometry.calc_line_points(r['rects']), width=1.5)
 
             self.canvas.add(Color(rgb=get_color_from_hex("#ffff66")))
             self.canvas.add(line)
@@ -98,12 +117,11 @@ class ImagePreviewScreen(Screen):
     def on_touch_move(self, touch):
         if self.drawing:
             if self.current_mode == "A":
-                rectangles = self.rectangles_articles
+                rectangles = self.rectangles_articles[-1]['rects']
             elif self.current_mode == "E":
                 rectangles = self.rectangles_exclude
-            r = rectangles[-1]
-            rr = r['rects'][-1]
-            (x,y) = rr.pos
+            active_rect = rectangles[-1]
+            (x,y) = active_rect['rect'].pos
 
             min_x = self.ids.image_p.center_x - self.ids.image_p.norm_image_size[0] // 2
             max_x = self.ids.image_p.center_x + self.ids.image_p.norm_image_size[0] // 2
@@ -113,34 +131,25 @@ class ImagePreviewScreen(Screen):
             width = (touch.x if min_x <= touch.x <= max_x else (min_x if touch.x < min_x else max_x)) - x
             height = (touch.y if min_y <= touch.y <= max_y else (min_y if touch.y < min_y else max_y)) - y
 
-            rr.size = (width, height)
-            r['original_width'] = width * self.ids.image_p.texture_size[0] / self.ids.image_p.norm_image_size[0]
-            r['original_height'] = height * self.ids.image_p.texture_size[1] / self.ids.image_p.norm_image_size[1]
+            active_rect['rect'].size = (width, height)
+            active_rect['original_width'] = width * self.ids.image_p.texture_size[0] / self.ids.image_p.norm_image_size[0]
+            active_rect['original_height'] = height * self.ids.image_p.texture_size[1] / self.ids.image_p.norm_image_size[1]
         else:
             return super().on_touch_move(touch)
 
     def on_resize(self, instance, value):
 
-        for r in self.rectangles_exclude:
+        for r in self.rectangles_exclude + [r for ra in self.rectangles_articles for r in ra['rects']]:
             r['rect'].pos = (r['original_x'] * instance.norm_image_size[0] / instance.texture_size[0] + (instance.center_x - instance.norm_image_size[0] / 2),
                             r['original_y'] * instance.norm_image_size[1] / instance.texture_size[1] + (instance.center_y - instance.norm_image_size[1] / 2))
 
             r['rect'].size = (r['original_width'] * instance.norm_image_size[0] / instance.texture_size[0],
                               r['original_height'] * instance.norm_image_size[1] / instance.texture_size[1])
 
-        for rects in self.rectangles_articles:
-            for r in rects['rects']:
-                r.pos = (rects['original_x'] * instance.norm_image_size[0] / instance.texture_size[0] + (instance.center_x - instance.norm_image_size[0] / 2),
-                         rects['original_y'] * instance.norm_image_size[1] / instance.texture_size[1] + (instance.center_y - instance.norm_image_size[1] / 2))
-
-                r.size = (rects['original_width'] * instance.norm_image_size[0] / instance.texture_size[0],
-                          rects['original_height'] * instance.norm_image_size[1] / instance.texture_size[1])
-
-
         for r in self.rectangles_articles:
             self.canvas.remove(r['line'])
 
-            r['line'] = KVLine(points=geometry.calc_line_points(r), width=1.5, close=True)
+            r['line'] = KVLine(points=geometry.calc_line_points(r['rects']), width=1.5)
             self.canvas.add(Color(rgb=get_color_from_hex("#ffff66")))
             self.canvas.add(r['line'])
 
@@ -152,7 +161,7 @@ class ImagePreviewScreen(Screen):
         if len(rectangles) > 0:
             r = rectangles.pop(-1)
             #self.canvas.remove(r['rect'])
-            self.canvas.remove(r.get('line', r['rect']))
+            self.canvas.remove(r.get('line', r.get('rect')))
         if len(rectangles) == 0:
             btn.disabled = True
 
@@ -173,11 +182,22 @@ class ImagePreviewScreen(Screen):
                 draw.rectangle([left,top,right,bottom], fill="black")
         if len(self.rectangles_articles) > 0:
             for r in self.rectangles_articles:
-                left = get_left(r)
-                right = get_right(r)
-                top = get_top(r, im.height)
-                bottom = get_bottom(r, im.height)
-                self.manager.article_images.append(im.crop((left,top,right,bottom)))
+                if len(r['rects']) == 1:
+                    r = r['rects'][0]
+                    left = get_left(r)
+                    right = get_right(r)
+                    top = get_top(r, im.height)
+                    bottom = get_bottom(r, im.height)
+                    self.manager.article_images.append(im.crop((left,top,right,bottom)))
+                else:
+                    mask = Im.new("RGBA", size=im.size)
+                    mask_draw = ImageDraw.Draw(mask)
+                    for rect in r['rects']:
+                        ps = geometry.get_rect(rect)
+                        mask_draw.rectangle(ps, fill="#fff")
+                    mask = mask.transpose(Im.Transpose.FLIP_TOP_BOTTOM)
+                    blank = Im.new("RGB", size=im.size)
+                    self.manager.article_images.append(Im.composite(im, blank, mask))
         else:
             self.manager.article_images.append(im)
         self.manager.current = 'article_preview'
@@ -194,7 +214,7 @@ class ArticlePreviewScreen(Screen):
             sep = Widget(height=200, size_hint=(1,None))
             self.ids.articles.add_widget(sep)
         self.ids.processing_text.opacity = 0
-        self.manager.current = 'save'
+        # self.manager.current = 'save'
         return super().on_enter(*args)
 
 class SaveScreen(Screen):
