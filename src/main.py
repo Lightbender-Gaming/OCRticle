@@ -2,12 +2,15 @@ import os, sys, subprocess
 from io import StringIO
 from statistics import median
 
-import pandas as pd
-import pytesseract
 from PIL import Image as Im
 from PIL import ImageDraw
 import kivy
 kivy.require('2.1.0') # replace with your current kivy version !
+
+from kivy.config import Config
+from kivy.metrics import dp
+Config.set('graphics', 'width', 1366)
+Config.set('graphics', 'height', 768)
 
 from kivy.app import App
 from kivy.uix.widget import Widget
@@ -179,7 +182,7 @@ class ImagePreviewScreen(Screen):
                 right = get_right(r)
                 top = get_top(r, im.height)
                 bottom = get_bottom(r, im.height)
-                draw.rectangle([left,top,right,bottom], fill="black")
+                draw.rectangle([left,top,right,bottom], fill="#fff")
         if len(self.rectangles_articles) > 0:
             for r in self.rectangles_articles:
                 if len(r['rects']) == 1:
@@ -192,14 +195,24 @@ class ImagePreviewScreen(Screen):
                 else:
                     mask = Im.new("RGBA", size=im.size)
                     mask_draw = ImageDraw.Draw(mask)
+                    min_left = None
+                    max_right = None
+                    min_top = None
+                    max_bottom = None
                     for rect in r['rects']:
+                        min_left = min(get_left(rect), min_left or get_left(rect))
+                        max_right = max(get_right(rect), max_right or get_right(rect))
+                        min_top = min(get_top(rect, im.height), min_top or get_top(rect, im.height))
+                        max_bottom = max(get_bottom(rect, im.height), max_bottom or get_bottom(rect, im.height))
                         ps = geometry.get_rect(rect)
                         mask_draw.rectangle(ps, fill="#fff")
                     mask = mask.transpose(Im.Transpose.FLIP_TOP_BOTTOM)
-                    blank = Im.new("RGB", size=im.size)
-                    self.manager.article_images.append(Im.composite(im, blank, mask))
+                    blank = Im.new("RGB", color="#fff", size=im.size)
+                    self.manager.article_images.append(Im.composite(im, blank, mask).crop((min_left, min_top, max_right, max_bottom)))
         else:
             self.manager.article_images.append(im)
+        # for im in self.manager.article_images:
+        #     im.show()
         self.manager.current = 'article_preview'
 
 class ArticlePreviewScreen(Screen):

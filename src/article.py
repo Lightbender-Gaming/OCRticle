@@ -1,4 +1,5 @@
 from statistics import median
+from string import ascii_lowercase
 
 import pandas as pd
 import pytesseract
@@ -22,31 +23,31 @@ class Article():
                 for (_,line_df) in par_df.groupby('line_num'):
                     words = line_df.loc[line_df['level'] == 5]['text'].tolist()
                     if len(words) > 0 and not all(word.isspace() for word in words):
-                        line = Line(' '.join(words), line_df.iloc[0]['height'])
+                        line = Line(words, line_df.iloc[0]['height'])
                         paragraph.lines.append(line)
 
                 if len(paragraph.lines) > 0:
                     block.paragraphs.append(paragraph)
 
             if len(block.paragraphs) > 0:
-                block.optimize()
-                # article.blocks.append(block)
                 blocks.append(block)
             
-        self.blocks = blocks
+        self.blocks : list[Block] = blocks
+        self.optimize()
 
     def __str__(self) -> str:
         return '\n\n<br/>\n\n'.join(str(x) for x in self.blocks)
 
     def optimize(self) -> None:
         new_blocks = []
-        prev_block = None
+        prev_block : Block = None
         for block in self.blocks:
             if not prev_block: 
                 prev_block = block
                 continue
 
-            if prev_block.paragraphs[-1].lines[-1].words.strip()[-1].isalpha():
+            if (abs(prev_block.get_line_height() - block.get_line_height()) <= 3
+                and prev_block.get_last_char() in ascii_lowercase + "-"):
                 prev_block.paragraphs.extend(block.paragraphs)
             else:
                 new_blocks.append(prev_block)
@@ -60,7 +61,7 @@ class Article():
 class Block():
 
     def __init__(self) -> None:
-        self.paragraphs = []
+        self.paragraphs : list[Paragraph] = []
         self.line_height = None
 
     def __str__(self) -> str:
@@ -68,19 +69,26 @@ class Block():
 
     def optimize(self) -> None:
         new_paragraphs = []
-        prev_paragraph = None
+        prev_paragraph : Paragraph = None
         for paragraph in self.paragraphs:
             if not prev_paragraph: 
                 prev_paragraph = paragraph
                 continue
 
-            if prev_paragraph.lines[-1].words.strip()[-1].isalpha():
+            last_char = prev_paragraph.get_last_char() 
+            if last_char in ascii_lowercase:
+                prev_paragraph.lines.extend(paragraph.lines)
+            elif last_char == '-' and paragraph.get_first_char() in ascii_lowercase:
+                prev_paragraph.remove_last_char()
+                prev_paragraph.lines[-1].words[-1] += paragraph.pop_first_word()
                 prev_paragraph.lines.extend(paragraph.lines)
             else:
                 new_paragraphs.append(prev_paragraph)
                 prev_paragraph = paragraph
             
         new_paragraphs.append(prev_paragraph)
+        for paragraph in new_paragraphs:
+            paragraph.optimize()
         self.paragraphs = new_paragraphs
 
     def get_line_height(self) -> int:
@@ -88,6 +96,15 @@ class Block():
             return self.line_height
         self.line_height = median(par.get_line_height() for par in self.paragraphs)
         return self.line_height
+
+    def get_last_char(self) -> str:
+        if len(self.paragraphs) == 0:
+            return None
+        return self.paragraphs[-1].get_last_char()
+    
+    def remove_last_char(self) -> None:
+        if len(self.paragraphs) > 0:
+            self.paragraphs[-1].remove_last_char()
 
 class Paragraph():
 
@@ -104,11 +121,67 @@ class Paragraph():
         self.height = median(line.height for line in self.lines)
         return self.height
 
+    def get_last_char(self) -> str:
+        if len(self.lines) == 0:
+            return None
+        return self.lines[-1].get_last_char()
+
+    def get_first_char(self) -> str:
+        if len(self.lines) == 0:
+            return None
+        return self.lines[0].get_first_char()
+
+    def pop_first_word(self) -> str:
+        if len(self.lines) == 0:
+            return None
+        return self.lines[0].pop_first_word()
+
+    def remove_last_char(self) -> None:
+        if len(self.lines) > 0:
+            self.lines[-1].remove_last_char()
+
+    def optimize(self) -> None:
+        new_lines = []
+        prev_line : Line = None
+        for line in self.lines:
+            if not prev_line: 
+                prev_line = line
+                continue
+
+            last_char = prev_line.get_last_char() 
+            if last_char == '-' and line.get_first_char() in ascii_lowercase:
+                prev_line.remove_last_char()
+                prev_line.words[-1] += line.pop_first_word()
+            if len(line.words) > 0:
+                new_lines.append(prev_line)
+                prev_line = line
+            
+        new_lines.append(prev_line)
+        self.lines = new_lines
+
 class Line():
 
     def __init__(self, words, height):
-        self.words : str = words
+        self.words : list[str] = words
         self.height : int = height
 
     def __str__(self) -> str:
-        return self.words
+        return ' '.join(self.words)
+
+    def get_last_char(self) -> str:
+        if len(self.words) == 0:
+            return None
+        return self.words[-1][-1]
+
+    def get_first_char(self) -> str:
+        if len(self.words) == 0:
+            return None
+        return self.words[0][0]
+
+    def pop_first_word(self) -> str:
+        if len(self.words) == 0:
+            return None
+        return self.words.pop(0)
+
+    def remove_last_char(self) -> None:
+        self.words[-1] = self.words[-1][:-1]
