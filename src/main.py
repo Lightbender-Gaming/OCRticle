@@ -17,8 +17,9 @@ from kivy.uix.widget import Widget
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.image import Image
+from kivy.uix.gridlayout import GridLayout
+from kivy.uix.relativelayout import RelativeLayout
+from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.properties import StringProperty, BooleanProperty, ListProperty, NumericProperty, ObjectProperty
 from kivy.graphics import Color, Ellipse, Rectangle
@@ -45,6 +46,9 @@ class ImagePreviewScreen(Screen):
     rectangles_exclude = ListProperty()
 
     def on_enter(self, *args):
+        self.manager.article_images = []
+        self.ids.undo_article_btn.disabled = True
+        self.ids.undo_exclude_btn.disabled = True
         self.drawing = False
         self.current_mode = "A"
         self.rectangles_articles = []
@@ -54,6 +58,13 @@ class ImagePreviewScreen(Screen):
         self.ids.image_p.reload()
         self.ids.image_p.bind(size=self.on_resize)
         return super().on_enter(*args)
+
+    def on_leave(self, *args):
+        for r in self.rectangles_articles:
+            self.canvas.remove(r['line'])
+        for r in self.rectangles_exclude:
+            self.canvas.remove(r['rect'])
+        return super().on_leave(*args)
 
     def on_touch_down(self, touch):
         image = self.ids.image_p
@@ -213,22 +224,29 @@ class ImagePreviewScreen(Screen):
             self.manager.article_images.append(im)
         # for im in self.manager.article_images:
         #     im.show()
+        self.manager.processed = False
         self.manager.current = 'article_preview'
 
 class ArticlePreviewScreen(Screen):
 
     def on_enter(self, *args):
-        for im in self.manager.article_images:
-            a = Article(im)
-            self.manager.articles.append(a)
-            # ti = MyTextInput(text=str(a))
-            ti = MyLabel(text=str(a))
-            self.ids.articles.add_widget(ti)
-            sep = Widget(height=200, size_hint=(1,None))
-            self.ids.articles.add_widget(sep)
-        self.ids.processing_text.opacity = 0
-        # self.manager.current = 'save'
+        if not self.manager.processed:
+            self.ids.processing_text.opacity = 1
+            self.manager.articles = []
+            for im in self.manager.article_images:
+                a = Article(im)
+                self.manager.articles.append(a)
+                aw = ArticleWidget()
+                aw.add_article(a)
+                self.ids.articles.add_widget(aw)
+            self.ids.processing_text.opacity = 0
+            self.manager.processed = True
         return super().on_enter(*args)
+
+    def teste(self):
+        for w in self.ids.articles.children:
+            print(str(w.article_object))
+            # TODO Make this method add the articles to the manager's articles list
 
 class SaveScreen(Screen):
     def save(self, filepath, filename):
@@ -247,11 +265,15 @@ class MyScreenManager(ScreenManager):
     image_source = StringProperty()
     article_images = ListProperty()
     articles = ListProperty()
+    processed = BooleanProperty()
 
     def load_image(self, selection):
         self.image_source = selection[0]
         # print(*(str(b) for b in generate_ir(selection[0])), sep='\n---\n')
         # print(generate_ir(selection))
+
+    def return_to_prev(self):
+        self.current = self.previous()
 
 class MyTextInput(TextInput):
     pass
@@ -259,10 +281,23 @@ class MyTextInput(TextInput):
 class MyLabel(Label):
     pass
 
+class ReturnButton(Button):
+    pass
+
+class ArticleWidget(GridLayout):
+    article_object = ObjectProperty()
+
+    def add_article(self, article):
+        self.article_object = article
+        for block in article.blocks:
+            l = MyLabel(text=str(block))
+            self.add_widget(l)
+
 class OCRApp(App):
 
     def build(self):
         sm = MyScreenManager()
+        self.sm = sm
         sm.add_widget(FileSelectScreen(name='file_select'))
         sm.add_widget(ImagePreviewScreen(name='image_preview'))
         sm.add_widget(ArticlePreviewScreen(name='article_preview'))

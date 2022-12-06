@@ -15,7 +15,7 @@ class Article():
         blocks = []
         for (_,block_df) in df.groupby('block_num'):
             block = Block()
-            block.n = block_df['block_num'].iloc[0]
+            block.width = block_df['width'].iloc[0]
 
             for (_,par_df) in block_df.groupby('par_num'):
                 paragraph = Paragraph()
@@ -47,7 +47,8 @@ class Article():
                 continue
 
             if (abs(prev_block.get_line_height() - block.get_line_height()) <= 3
-                and prev_block.get_last_char() in ascii_lowercase + "-"):
+                and prev_block.get_last_char() in ascii_lowercase + "-"
+                and (abs(prev_block.width - block.width) / block.width) < 0.1):
                 prev_block.paragraphs.extend(block.paragraphs)
             else:
                 new_blocks.append(prev_block)
