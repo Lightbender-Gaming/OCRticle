@@ -1,8 +1,14 @@
 from statistics import median
 from string import ascii_lowercase
+from enum import Enum
 
 import pandas as pd
 import pytesseract
+
+class BlockType(Enum):
+    TITLE = 0
+    BODY = 1
+    OTHER = 2
 
 class Article():
 
@@ -33,13 +39,14 @@ class Article():
                 blocks.append(block)
             
         self.blocks : list[Block] = blocks
-        self.optimize()
+        if len(blocks) > 0:
+            self.optimize()
 
     def __str__(self) -> str:
         return '\n\n<br/>\n\n'.join(str(x) for x in self.blocks)
 
     def optimize(self) -> None:
-        new_blocks = []
+        new_blocks : list[Block] = []
         prev_block : Block = None
         for block in self.blocks:
             if not prev_block: 
@@ -57,6 +64,13 @@ class Article():
         new_blocks.append(prev_block)
         for block in new_blocks:
             block.optimize()
+        possible_title = None
+        max_font_size = 0
+        for block in new_blocks:
+            if (h := block.get_line_height()) > max_font_size:
+                possible_title = block
+                max_font_size = h
+        possible_title.type = BlockType.TITLE
         self.blocks = new_blocks
 
 class Block():
@@ -64,9 +78,11 @@ class Block():
     def __init__(self) -> None:
         self.paragraphs : list[Paragraph] = []
         self.line_height = None
+        self.type = BlockType.OTHER
 
     def __str__(self) -> str:
-        return '\n\n'.join(str(x) for x in self.paragraphs)
+        prefix = "# " if self.type == BlockType.TITLE else ""
+        return '\n\n'.join(prefix + str(x) for x in self.paragraphs)
 
     def optimize(self) -> None:
         new_paragraphs = []
@@ -91,6 +107,8 @@ class Block():
         for paragraph in new_paragraphs:
             paragraph.optimize()
         self.paragraphs = new_paragraphs
+        if len(self.paragraphs) >= 3:
+            self.type = BlockType.BODY
 
     def get_line_height(self) -> int:
         if self.line_height:
