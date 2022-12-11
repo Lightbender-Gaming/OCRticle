@@ -13,9 +13,8 @@
             path: "."
             on_selection: select_file_btn.disabled = False
             filters: ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tiff", "*.tif"]
-            on_submit: 
+            on_submit:
                 root.manager.load_image(filechooser.selection)
-                root.manager.current = 'image_preview'
         Widget:
             size_hint: (1,0.25)
             Button:
@@ -140,10 +139,11 @@
                     size_hint: (1, None)
                     height: self.minimum_height
                     id: articles
-            Widget:
+            FloatLayout:
                 size_hint: (1, 0.15)
                 Button:
                     center: self.parent.center
+                    size_hint: (None, None)
                     text_size: (180,60)
                     font_size: 20
                     valign: 'center'
@@ -153,6 +153,19 @@
                     on_press: 
                         root.teste()
                         root.manager.current = "save"
+                RelativeLayout:
+                    size_hint: (None, None)
+                    width: self.parent.width
+                    center_y: self.parent.center_y
+                    center_x: self.parent.center_x + 150
+                    CheckBox:
+                        id: line_breaks_cb
+                        on_active:
+                            root.change_line_breaks()
+                    Label:
+                        pos: (self.texture_size[0] // 2 + 20,0)
+                        font_size: 17
+                        text: "Keep line breaks"
 
 <SaveScreen>:
     RelativeLayout:
@@ -204,6 +217,12 @@
     height: self.minimum_height
 
 <MyLabel>:
+    canvas.before:
+        Color:
+            rgb: 0.85, 0.85, 0.85
+        Rectangle:
+            size: root.size
+            pos: root.pos
     size_hint: (1, None)
     text_size: root.width, None
     size: self.texture_size

@@ -42,12 +42,14 @@ class Article():
         if len(blocks) > 0:
             self.optimize()
 
+
     def __str__(self) -> str:
         return '\n\n<br/>\n\n'.join(str(x) for x in self.blocks)
 
     def optimize(self) -> None:
         new_blocks : list[Block] = []
         prev_block : Block = None
+        changes = False
         for block in self.blocks:
             if not prev_block: 
                 prev_block = block
@@ -57,6 +59,9 @@ class Article():
                 and prev_block.get_last_char() in ascii_lowercase + "-"
                 and (abs(prev_block.width - block.width) / block.width) < 0.1):
                 prev_block.paragraphs.extend(block.paragraphs)
+                prev_block.width = max(prev_block.width, block.width)
+                prev_block.line_height = None
+                changes = True
             else:
                 new_blocks.append(prev_block)
                 prev_block = block
@@ -72,6 +77,8 @@ class Article():
                 max_font_size = h
         possible_title.type = BlockType.TITLE
         self.blocks = new_blocks
+        if changes:
+            self.optimize()
 
 class Block():
 
@@ -79,14 +86,19 @@ class Block():
         self.paragraphs : list[Paragraph] = []
         self.line_height = None
         self.type = BlockType.OTHER
+        self.width = None
 
     def __str__(self) -> str:
+        return self.to_string()
+
+    def to_string(self, keep_line_breaks = False):
         prefix = "# " if self.type == BlockType.TITLE else ""
-        return '\n\n'.join(prefix + str(x) for x in self.paragraphs)
+        return '\n\n'.join(prefix + x.to_string(keep_line_breaks and self.type != BlockType.TITLE) for x in self.paragraphs)
 
     def optimize(self) -> None:
         new_paragraphs = []
         prev_paragraph : Paragraph = None
+        changes = False
         for paragraph in self.paragraphs:
             if not prev_paragraph: 
                 prev_paragraph = paragraph
@@ -95,10 +107,14 @@ class Block():
             last_char = prev_paragraph.get_last_char() 
             if last_char in ascii_lowercase:
                 prev_paragraph.lines.extend(paragraph.lines)
+                prev_paragraph.line_height = None
+                changes = True
             elif last_char == '-' and paragraph.get_first_char() in ascii_lowercase:
                 prev_paragraph.remove_last_char()
                 prev_paragraph.lines[-1].words[-1] += paragraph.pop_first_word()
                 prev_paragraph.lines.extend(paragraph.lines)
+                prev_paragraph.line_height = None
+                changes = True
             else:
                 new_paragraphs.append(prev_paragraph)
                 prev_paragraph = paragraph
@@ -109,6 +125,8 @@ class Block():
         self.paragraphs = new_paragraphs
         if len(self.paragraphs) >= 3:
             self.type = BlockType.BODY
+        if changes:
+            self.optimize()
 
     def get_line_height(self) -> int:
         if self.line_height:
@@ -132,7 +150,13 @@ class Paragraph():
         self.height = None
 
     def __str__(self) -> str:
-        return ' '.join(str(x) for x in self.lines)
+        return self.to_string()
+
+    def to_string(self, keep_line_breaks = False):
+        if keep_line_breaks:
+            return '\n'.join(str(x) for x in self.lines)
+        else:
+            return ' '.join(str(x) for x in self.lines)
     
     def get_line_height(self) -> int:
         if self.height:
