@@ -99,7 +99,6 @@ def parse_rect(new_rect, rects, image):
         if fine:
             final_rects.append(rect)
 
-    print(final_rects)
     return_rects = []
     for points in final_rects:
         width = points['x2'] - points['x1']
