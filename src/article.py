@@ -41,7 +41,11 @@ class Article():
         self.blocks : list[Block] = blocks
         if len(blocks) > 0:
             self.optimize()
+                
+        font_sizes = sorted(((i,x.get_line_height()) for i,x in enumerate(self.blocks)), reverse=True, key=lambda x: x[1])
 
+        if font_sizes[0][1] > font_sizes[1][1] + 5:
+            self.blocks[font_sizes[0][0]].type = BlockType.TITLE
 
     def __str__(self) -> str:
         return '\n\n<br/>\n\n'.join(str(x) for x in self.blocks)
@@ -72,13 +76,7 @@ class Article():
         new_blocks.append(prev_block)
         for block in new_blocks:
             block.optimize()
-        possible_title = None
-        max_font_size = 0
-        for block in new_blocks:
-            if (h := block.get_line_height()) > max_font_size:
-                possible_title = block
-                max_font_size = h
-        possible_title.type = BlockType.TITLE
+
         self.blocks = new_blocks
         if changes:
             self.optimize()
