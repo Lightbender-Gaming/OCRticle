@@ -293,7 +293,7 @@ class ArticleWidget(GridLayout):
             l = MyLabel(text=t, font_size=font_size)
             self.add_widget(l)
 
-class OCRApp(App):
+class OCRticleApp(App):
 
     def build(self):
         sm = MyScreenManager()

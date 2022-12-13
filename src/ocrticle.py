@@ -12,7 +12,7 @@ from kivy.config import Config
 Config.set('graphics', 'width', 1366)
 Config.set('graphics', 'height', 768)
 
-from gui import OCRApp
+from gui import OCRticleApp
 
 import ctypes
 
@@ -22,7 +22,7 @@ libbytiff.TIFFSetWarningHandler.restype = ctypes.c_void_p
 libbytiff.TIFFSetWarningHandler(None)
 
 def main():
-    OCRApp().run()
+    OCRticleApp().run()
 
 if __name__ == '__main__':
     main()
