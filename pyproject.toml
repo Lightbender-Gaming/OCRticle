@@ -1,11 +1,5 @@
 [build-system]
-requires = [
-    "flit_core >=3.2,<4",
-    "Kivy >= 2.1.0, <3",
-    "pandas >= 1.5.1, <2",
-    "Pillow >= 9.3.0, <10",
-    "pytesseract >= 0.3.10, <1"
-]
+requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
@@ -15,6 +9,12 @@ readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
+dependencies = [
+    "Kivy >= 2.1.0, <3",
+    "pandas >= 1.5.1, <2",
+    "Pillow >= 9.3.0, <10",
+    "pytesseract >= 0.3.10, <1"
+    ]
 
 [project.gui-scripts]
 ocrticle = "ocrticle:main"
