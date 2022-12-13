@@ -253,7 +253,7 @@ class SaveScreen(Screen):
         else:
             opener = "open" if sys.platform == "darwin" else "xdg-open"
             subprocess.call([opener, file])
-        OCRApp.get_running_app().stop()
+        OCRticleApp.get_running_app().stop()
 
 class MyScreenManager(ScreenManager):
     image_source = StringProperty()
