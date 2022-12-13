@@ -1,3 +1,7 @@
+"""OCRticle - Structured OCR for articles"""
+
+__version__ = "0.1.0"
+
 import sys
 
 import kivy
@@ -17,8 +21,8 @@ libbytiff.TIFFSetWarningHandler.argtypes = [ctypes.c_void_p]
 libbytiff.TIFFSetWarningHandler.restype = ctypes.c_void_p
 libbytiff.TIFFSetWarningHandler(None)
 
+def main():
+    OCRApp().run()
+
 if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        OCRApp().run()
-    else:
-        pass
+    main()
