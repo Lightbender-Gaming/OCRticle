@@ -46,6 +46,9 @@ class Article():
     def __str__(self) -> str:
         return '\n\n<br/>\n\n'.join(str(x) for x in self.blocks)
 
+    def to_string(self, keep_line_breaks) -> str:
+        return '\n\n<br/>\n\n'.join(x.to_string(keep_line_breaks) for x in self.blocks)
+
     def optimize(self) -> None:
         new_blocks : list[Block] = []
         prev_block : Block = None

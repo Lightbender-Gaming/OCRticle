@@ -237,17 +237,17 @@ class ArticlePreviewScreen(Screen):
     def change_line_breaks(self):
         self.refresh_articles()
 
-    def teste(self):
-        for w in self.ids.articles.children:
-            print(str(w.article_object))
-            # TODO Make this method add the articles to the manager's articles list
+    # def teste(self):
+    #     for w in self.ids.articles.children:
+    #         print(str(w.article_object))
+    #         # TODO Make this method add the articles to the manager's articles list
 
 class SaveScreen(Screen):
     def save(self, filepath, filename):
         file = os.path.join(filepath, filename + ".md")
         with open(file, "w", encoding='UTF-8') as f:
             for article in self.manager.articles:
-                f.write(str(article) + "\n\n---\n\n")
+                f.write(article.to_string(self.manager.keep_line_breaks) + "\n\n---\n\n")
         if sys.platform == "win32":
             os.startfile(file)
         else:

@@ -151,19 +151,28 @@
                     size: self.texture_size
                     text: "Save article(s)"
                     on_press: 
-                        root.teste()
                         root.manager.current = "save"
-                RelativeLayout:
-                    size_hint: (None, None)
-                    width: self.parent.width
-                    center_y: self.parent.center_y
-                    center_x: self.parent.center_x + 150
+                FloatLayout:
+                    center_x: self.parent.center_x + 175
+                    # canvas.before:
+                    #     Color:
+                    #         rgb: 1,0,0
+                    #     Rectangle:
+                    #         size: self.size
+                    #         pos: self.pos
                     CheckBox:
+                        size_hint: (None, None)
+                        pos_hint: {'x': 0, 'center_y': 0.5}
+                        size: 20,20
                         id: line_breaks_cb
                         on_active:
                             root.change_line_breaks()
                     Label:
-                        pos: (self.texture_size[0] // 2 + 20,0)
+                        size_hint: (None, None)
+                        pos_hint: {'x': 0, 'center_y': 0.5}
+                        size: self.texture_size
+                        padding_x: 22
+                        halign: 'left'
                         font_size: 17
                         text: "Keep line breaks"
 
