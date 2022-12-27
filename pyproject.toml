@@ -16,5 +16,8 @@ dependencies = [
     "pytesseract >= 0.3.10, <1"
     ]
 
-[project.gui-scripts]
+[tool.flit.sdist]
+include = ["src/OCRticle.py"]
+
+[project.scripts]
 ocrticle = "ocrticle:main"

@@ -2,8 +2,6 @@
 
 __version__ = "0.1.0"
 
-import sys
-
 import kivy
 kivy.require('2.1.0') # replace with your current kivy version !
 

@@ -5,6 +5,10 @@ from math import atan2
 from kivy.graphics import Rectangle
 
 def get_points(rect):
+    """Returns the points of a rectangle as a dict of coordinates.
+    
+    Args:
+        rect (dict): A dictionary containing the rectangle's points, stored as pos/size tuples."""
     if isinstance(rect, dict):
         rect = rect['rect']
 
@@ -26,6 +30,11 @@ def get_points(rect):
     }
 
 def get_original_rect(rect):
+    """Returns the original points of a rectangle.
+    
+    Args:
+        rect (dict): A dictionary containing the rectangle's original points.
+    """
     x1 = rect['original_x']
     x2 = x1 + rect['original_width']
     y1 = rect['original_y']
@@ -40,13 +49,29 @@ def get_original_rect(rect):
             (x2, y2)]
 
 def point_in_rects(point, rects):
+    """Checks if a point is inside any of the given rectangles.
+    
+    Args:
+        point (tuple): The point to check.
+        rects (list): A list of rectangles to check against.
+    """
     (x,y) = point
     for r in map(get_points, rects):
         if r['x1'] <= x <= r['x2'] and r['y1'] <= y <= r['y2']:
             return True
     return False
 
-def parse_rect(new_rect, rects, image):
+def parse_rect(new_rect : dict, rects : list[dict], image : dict) -> list[dict]:
+    """Divides a rectangle into a list of rectangles that don't collide with any existing rectangles.
+
+    The function calculates the intersection of the new rectangle with all existing rectangles and
+    removes that intersection from the new rectangle, by creating new rectangles which contain the non-intersecting areas.
+
+    Args:
+        new_rect (dict): A dictionary containing the new rectangle's points.
+        rects (list): A list of existing rectangles.
+        image (dict): A dictionary containing the image's width and height. Used to calculate the new rectangles' original points.
+    """
     new_rect_points = get_points(new_rect)
     q = [new_rect_points]
     final_rects = []

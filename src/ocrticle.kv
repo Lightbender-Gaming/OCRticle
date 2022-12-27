@@ -141,6 +141,7 @@
                     id: articles
             FloatLayout:
                 size_hint: (1, 0.15)
+                pos_hint: {'x': 0}
                 Button:
                     center: self.parent.center
                     size_hint: (None, None)
@@ -153,13 +154,7 @@
                     on_press: 
                         root.manager.current = "save"
                 FloatLayout:
-                    center_x: self.parent.center_x + 175
-                    # canvas.before:
-                    #     Color:
-                    #         rgb: 1,0,0
-                    #     Rectangle:
-                    #         size: self.size
-                    #         pos: self.pos
+                    x: self.parent.center_x + 150
                     CheckBox:
                         size_hint: (None, None)
                         pos_hint: {'x': 0, 'center_y': 0.5}
