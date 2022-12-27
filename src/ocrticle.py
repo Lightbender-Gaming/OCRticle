@@ -2,6 +2,8 @@
 
 __version__ = "0.1.0"
 
+import sys
+
 import kivy
 kivy.require('2.1.0') # replace with your current kivy version !
 
@@ -14,10 +16,11 @@ from gui import OCRticleApp
 
 import ctypes
 
-libbytiff = ctypes.CDLL("libtiff-5.dll")
-libbytiff.TIFFSetWarningHandler.argtypes = [ctypes.c_void_p]
-libbytiff.TIFFSetWarningHandler.restype = ctypes.c_void_p
-libbytiff.TIFFSetWarningHandler(None)
+if sys.platform == "win32":
+    libbytiff = ctypes.CDLL("libtiff-5.dll")
+    libbytiff.TIFFSetWarningHandler.argtypes = [ctypes.c_void_p]
+    libbytiff.TIFFSetWarningHandler.restype = ctypes.c_void_p
+    libbytiff.TIFFSetWarningHandler(None)
 
 def main():
     OCRticleApp().run()
