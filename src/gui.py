@@ -302,4 +302,7 @@ class OCRticleApp(App):
         sm.add_widget(ImagePreviewScreen(name='image_preview'))
         sm.add_widget(ArticlePreviewScreen(name='article_preview'))
         sm.add_widget(SaveScreen(name='save'))
+        if self.default_image:
+            sm.image_source = self.default_image
+            sm.current = 'image_preview'
         return sm

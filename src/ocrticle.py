@@ -23,7 +23,9 @@ if sys.platform == "win32":
     libbytiff.TIFFSetWarningHandler(None)
 
 def main():
-    OCRticleApp().run()
+    app = OCRticleApp()
+    app.default_image = sys.argv[1] if len(sys.argv) > 1 else None
+    app.run()
 
 if __name__ == '__main__':
     main()
