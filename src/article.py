@@ -7,8 +7,9 @@ import pytesseract
 
 class BlockType(Enum):
     TITLE = 0
-    BODY = 1
-    OTHER = 2
+    TEXT = 1
+    QUOTE = 2
+    CODE = 3
 
 class Article():
 
@@ -42,7 +43,7 @@ class Article():
         if len(blocks) > 0:
             self.optimize()
                 
-        font_sizes = sorted(((i,x.get_line_height()) for i,x in enumerate(self.blocks)), reverse=True, key=lambda x: x[1])
+        font_sizes = sorted(((i,x.get_line_height()) for i,x in enumerate(self.blocks) if len(x.paragraphs) == 1), reverse=True, key=lambda x: x[1])
 
         if len(font_sizes) > 1 and font_sizes[0][1] > font_sizes[1][1] + 5:
             self.blocks[font_sizes[0][0]].type = BlockType.TITLE
@@ -86,15 +87,24 @@ class Block():
     def __init__(self) -> None:
         self.paragraphs : list[Paragraph] = []
         self.line_height = None
-        self.type = BlockType.OTHER
+        self.type = BlockType.TEXT
         self.width = None
 
     def __str__(self) -> str:
         return self.to_string()
 
-    def to_string(self, keep_line_breaks = False):
-        prefix = "# " if self.type == BlockType.TITLE else ""
-        return '\n\n'.join(prefix + x.to_string(keep_line_breaks and self.type != BlockType.TITLE) for x in self.paragraphs)
+    def to_string(self, keep_line_breaks = False, type_formatting = True):
+        pars = '\n\n'.join(str(x) for x in self.paragraphs)
+        if type_formatting:
+            if self.type == BlockType.TITLE:
+                return "# " + self.paragraphs[0].to_string()
+            if self.type == BlockType.QUOTE:
+                return '\n'.join("> " + x for x in pars.splitlines())
+            if self.type == BlockType.CODE:
+                return "```\n" + pars + "\n```"
+            return pars
+        else:
+            return pars
 
     def optimize(self) -> None:
         new_paragraphs = []
@@ -124,8 +134,6 @@ class Block():
         for paragraph in new_paragraphs:
             paragraph.optimize()
         self.paragraphs = new_paragraphs
-        if len(self.paragraphs) >= 3:
-            self.type = BlockType.BODY
         if changes:
             self.optimize()
 

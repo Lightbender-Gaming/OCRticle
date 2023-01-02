@@ -1,9 +1,10 @@
 import os, sys, subprocess
+from functools import partial
 
 from PIL import Image as Im
 from PIL import ImageDraw
 
-from article import Article
+from article import Article, BlockType
 import geometry
 
 from kivy.app import App
@@ -12,9 +13,11 @@ from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.dropdown import DropDown
 from kivy.properties import StringProperty,\
     BooleanProperty,\
     ListProperty,\
@@ -281,17 +284,49 @@ class ReturnButton(Button):
 
 class ArticleWidget(GridLayout):
     article_object = ObjectProperty()
+    ls = ListProperty()
+    dds = ListProperty()
+
+    def change_dd(self, btn, instance, x):
+        bt = BlockType[x]
+        self.article_object.blocks[btn.i].type = BlockType[x]
+        if bt == BlockType.TITLE:
+            self.ls[btn.i].font_size=sp(25)
+        else:
+            self.ls[btn.i].font_size=sp(20)
+        setattr(btn ,'text', x)
+
+    def select_option(self, dd, btn):
+        dd.select(btn.text)
 
     def add_article(self, article, keep_line_breaks = False):
+        self.dds = []
+        self.ls = []
         self.article_object = article
-        for block in article.blocks:
-            t = block.to_string(keep_line_breaks)
-            if t.startswith("# "):
+        for i,block in enumerate(article.blocks):
+            t = block.to_string(keep_line_breaks, type_formatting=False)
+            if block.type == BlockType.TITLE:
                 font_size = sp(25)
             else:
                 font_size = sp(20)
             l = MyLabel(text=t, font_size=font_size)
             self.add_widget(l)
+            self.ls.append(l)
+            dd = DropDown()
+            self.dds.append(dd)
+            for t in BlockType:
+                btn = Button(text=t.name, size_hint_y=None, height=44)
+                btn.bind(on_release=partial(self.select_option, dd))
+                dd.add_widget(btn)
+            b = Button(text=block.type.name, size_hint=(None, None), height=44, pos_hint={'right': 1, 'top': 1})
+            b.i = i
+            b.bind(on_release=dd.open)
+            dd.bind(on_select=partial(self.change_dd, b))
+
+            f = FloatLayout(size_hint=(0.1, 80))
+            f.add_widget(b)
+            self.add_widget(f)
+        print(self.dds)
 
 class OCRticleApp(App):
 
