@@ -49,10 +49,11 @@ class Article():
             self.blocks[font_sizes[0][0]].type = BlockType.TITLE
 
     def __str__(self) -> str:
-        return '\n\n<br/>\n\n'.join(str(x) for x in self.blocks)
+        # '\n\n<br/>\n\n'
+        return '\n\n\n\n'.join(str(x) for x in self.blocks)
 
     def to_string(self, keep_line_breaks) -> str:
-        return '\n\n<br/>\n\n'.join(x.to_string(keep_line_breaks) for x in self.blocks)
+        return '\n\n\n\n'.join(x.to_string(keep_line_breaks) for x in self.blocks)
 
     def optimize(self) -> None:
         new_blocks : list[Block] = []

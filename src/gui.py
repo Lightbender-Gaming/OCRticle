@@ -300,8 +300,8 @@ class ArticleWidget(GridLayout):
         dd.select(btn.text)
 
     def add_article(self, article, keep_line_breaks = False):
-        self.dds = []
         self.ls = []
+        self.dds = []
         self.article_object = article
         for i,block in enumerate(article.blocks):
             t = block.to_string(keep_line_breaks, type_formatting=False)
@@ -323,10 +323,9 @@ class ArticleWidget(GridLayout):
             b.bind(on_release=dd.open)
             dd.bind(on_select=partial(self.change_dd, b))
 
-            f = FloatLayout(size_hint=(0.1, 80))
+            f = FloatLayout(size_hint=(0.1, 1))
             f.add_widget(b)
             self.add_widget(f)
-        print(self.dds)
 
 class OCRticleApp(App):
 
