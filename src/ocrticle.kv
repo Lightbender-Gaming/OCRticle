@@ -48,7 +48,7 @@
                     rows: 1
                     size_hint: (0.5, 1)
                     Label:
-                        text: "Choose a mode:"
+                        text: "Drawing mode:"
                     AnchorLayout:
                         BoxLayout:
                             orientation: 'vertical'
@@ -104,8 +104,50 @@
                                 text: "< Undo"
                                 disabled: True
                                 on_press: root.undo_selection(self,"E")
+                GridLayout:
+                    cols: 1
+                    size_hint: (0.3, 1)
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        Label:
+                            size_hint: (0.4, 1)
+                            text: "Brightness"
+                        Slider:
+                            size_hint: (0.6, 1)
+                            id: brightness_slider
+                            min: 0
+                            max: 200
+                            value: 100
+                            step: 1
+                            on_value: root.show_image()
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        Label:
+                            size_hint: (0.4, 1)
+                            text: "Contrast"
+                        Slider:
+                            size_hint: (0.6, 1)
+                            id: contrast_slider
+                            min: 0
+                            max: 200
+                            value: 100
+                            step: 1
+                            on_value: root.show_image()
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        Label:
+                            size_hint: (0.4, 1)
+                            text: "Saturation"
+                        Slider:
+                            size_hint: (0.6, 1)
+                            id: saturation_slider
+                            min: 0
+                            max: 200
+                            value: 100
+                            step: 1
+                            on_value: root.show_image()
                 Widget:
-                    size_hint: (0.5, 1)
+                    size_hint: (0.2, 1)
                     Button:
                         center: self.parent.center
                         text_size: (100,50)
@@ -161,7 +203,7 @@
                         size: 20,20
                         id: line_breaks_cb
                         on_active:
-                            root.change_line_breaks()
+                            root.refresh_articles()
                     Label:
                         size_hint: (None, None)
                         pos_hint: {'x': 0, 'center_y': 0.5}

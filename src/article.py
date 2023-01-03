@@ -95,7 +95,7 @@ class Block():
         return self.to_string()
 
     def to_string(self, keep_line_breaks = False, type_formatting = True):
-        pars = '\n\n'.join(str(x) for x in self.paragraphs)
+        pars = '\n\n'.join(x.to_string(keep_line_breaks) for x in self.paragraphs)
         if type_formatting:
             if self.type == BlockType.TITLE:
                 return "# " + self.paragraphs[0].to_string()

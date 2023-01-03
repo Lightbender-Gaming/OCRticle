@@ -1,8 +1,8 @@
 import os, sys, subprocess
 from functools import partial
+from io import BytesIO
 
-from PIL import Image as Im
-from PIL import ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
 
 from article import Article, BlockType
 import geometry
@@ -18,6 +18,8 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.dropdown import DropDown
+from kivy.core.image import Image as CoreImage
+from kivy.uix.image import Image as kiImage
 from kivy.properties import StringProperty,\
     BooleanProperty,\
     ListProperty,\
@@ -25,6 +27,7 @@ from kivy.properties import StringProperty,\
     ObjectProperty,\
     DictProperty
 from kivy.graphics import Color, Ellipse, Rectangle
+from kivy.graphics.texture import Texture
 from kivy.utils import get_color_from_hex
 from kivy.metrics import sp
 
@@ -37,6 +40,17 @@ class ImagePreviewScreen(Screen):
     rectangles_articles = ListProperty()
     rectangles_exclude = ListProperty()
     image_attributes = DictProperty()
+    original_image = ObjectProperty()
+
+    def show_image(self):
+        data = BytesIO()
+        i = ImageEnhance.Brightness(self.preview).enhance(self.ids.brightness_slider.value / 100)
+        i = ImageEnhance.Contrast(i).enhance(self.ids.contrast_slider.value / 100)
+        ImageEnhance.Color(i).enhance(self.ids.saturation_slider.value / 100).save(data, format="PNG")
+        data.seek(0)
+        img = CoreImage(BytesIO(data.read()), ext="png")
+        self.ids.image_p.texture = img.texture
+        self.ids.image_p.reload
 
     def on_enter(self, *args):
         self.manager.article_images = []
@@ -46,9 +60,11 @@ class ImagePreviewScreen(Screen):
         self.current_mode = "A"
         self.rectangles_articles = []
         self.rectangles_exclude = []
-        self.ids.image_p.source = self.manager.image_source
+        self.original_image = Image.open(self.manager.image_source)
+        self.preview = self.original_image.copy()
+        self.preview.thumbnail((1200, 1200))
+        self.show_image()
         self.ids.image_p.opacity = 1
-        self.ids.image_p.reload()
         self.ids.image_p.bind(size=self.on_resize)
         return super().on_enter(*args)
 
@@ -61,12 +77,13 @@ class ImagePreviewScreen(Screen):
         return super().on_leave(*args)
 
     def on_touch_down(self, touch):
-        image = self.ids.image_p
+        image = self.original_image
+        image_p = self.ids.image_p
 
-        min_x = image.center_x - image.norm_image_size[0] / 2
-        max_x = image.center_x + image.norm_image_size[0] / 2
-        min_y = image.center_y - image.norm_image_size[1] / 2
-        max_y = image.center_y + image.norm_image_size[1] / 2
+        min_x = image_p.center_x - image_p.norm_image_size[0] / 2
+        max_x = image_p.center_x + image_p.norm_image_size[0] / 2
+        min_y = image_p.center_y - image_p.norm_image_size[1] / 2
+        max_y = image_p.center_y + image_p.norm_image_size[1] / 2
 
         if min_x <= touch.x <= max_x and min_y <= touch.y <= max_y:
             self.drawing = True
@@ -79,8 +96,8 @@ class ImagePreviewScreen(Screen):
             r_canvas = Rectangle(pos=touch.pos, size=(1,1))
             new_r = {
                 'rect': r_canvas,
-                'original_x': (touch.x - min_x) * image.texture_size[0] / image.norm_image_size[0],
-                'original_y': (touch.y - min_y) * image.texture_size[1] / image.norm_image_size[1],
+                'original_x': (touch.x - min_x) * image.width / image_p.norm_image_size[0],
+                'original_y': (touch.y - min_y) * image.height / image_p.norm_image_size[1],
             }
             if self.current_mode == "A" and len(rectangles) > 0 and geometry.point_in_rects((touch.x,touch.y), rectangles[-1]):
                 rectangles[-1].append(new_r)
@@ -125,19 +142,19 @@ class ImagePreviewScreen(Screen):
             height = (touch.y if min_y <= touch.y <= max_y else (min_y if touch.y < min_y else max_y)) - y
 
             active_rect['rect'].size = (width, height)
-            active_rect['original_width'] = width * self.ids.image_p.texture_size[0] / self.ids.image_p.norm_image_size[0]
-            active_rect['original_height'] = height * self.ids.image_p.texture_size[1] / self.ids.image_p.norm_image_size[1]
+            active_rect['original_width'] = width * self.original_image.width / self.ids.image_p.norm_image_size[0]
+            active_rect['original_height'] = height * self.original_image.height / self.ids.image_p.norm_image_size[1]
         else:
             return super().on_touch_move(touch)
 
     def on_resize(self, instance, value):
 
         for r in self.rectangles_exclude + [r for ra in self.rectangles_articles for r in ra]:
-            r['rect'].pos = (r['original_x'] * instance.norm_image_size[0] / instance.texture_size[0] + (instance.center_x - instance.norm_image_size[0] / 2),
-                            r['original_y'] * instance.norm_image_size[1] / instance.texture_size[1] + (instance.center_y - instance.norm_image_size[1] / 2))
+            r['rect'].pos = (r['original_x'] * instance.norm_image_size[0] / self.original_image.width + (instance.center_x - instance.norm_image_size[0] / 2),
+                            r['original_y'] * instance.norm_image_size[1] / self.original_image.height + (instance.center_y - instance.norm_image_size[1] / 2))
 
-            r['rect'].size = (r['original_width'] * instance.norm_image_size[0] / instance.texture_size[0],
-                              r['original_height'] * instance.norm_image_size[1] / instance.texture_size[1])
+            r['rect'].size = (r['original_width'] * instance.norm_image_size[0] / self.original_image.width,
+                              r['original_height'] * instance.norm_image_size[1] / self.original_image.height)
 
     def undo_selection(self, btn, mode):
         if mode == 'A':
@@ -161,12 +178,16 @@ class ImagePreviewScreen(Screen):
         get_top = lambda r, h: h - r['original_y'] if r['original_height'] < 0 else h - (r['original_y'] + r['original_height'])
         get_bottom = lambda r, h: h - r['original_y'] if r['original_height'] > 0 else h - (r['original_y'] + r['original_height'])
 
-        im = Im.open(self.manager.image_source)
-        im_colors = im.resize((1000,1000))
+        im = self.original_image
+        im = ImageEnhance.Brightness(im).enhance(self.ids.brightness_slider.value / 100)
+        im = ImageEnhance.Contrast(im).enhance(self.ids.contrast_slider.value / 100)
+        im = ImageEnhance.Color(im).enhance(self.ids.saturation_slider.value / 100)
+        thmb = im.copy()
+        thmb.thumbnail((600,600))
         freqs = dict()
-        for h in range(1000):
-            for w in range(1000):
-                c = im_colors.getpixel((w,h))
+        for h in range(thmb.height):
+            for w in range(thmb.width):
+                c = thmb.getpixel((w,h))
                 cf = freqs.setdefault(c, 0)
                 freqs[c] = cf + 1
         most_common, _ = max(freqs.items(), key= lambda i: i[1])
@@ -188,7 +209,7 @@ class ImagePreviewScreen(Screen):
                     bottom = get_bottom(r, im.height)
                     self.manager.article_images.append(im.crop((left,top,right,bottom)))
                 else:
-                    mask = Im.new("RGBA", size=im.size)
+                    mask = Image.new("RGBA", size=im.size)
                     mask_draw = ImageDraw.Draw(mask)
                     min_left = None
                     max_right = None
@@ -201,9 +222,9 @@ class ImagePreviewScreen(Screen):
                         max_bottom = max(get_bottom(rect, im.height), max_bottom or get_bottom(rect, im.height))
                         ps = geometry.get_original_rect(rect)
                         mask_draw.rectangle(ps, fill="#fff")
-                    mask = mask.transpose(Im.Transpose.FLIP_TOP_BOTTOM)
-                    blank = Im.new("RGB", color=most_common, size=im.size)
-                    final_image = Im.composite(im, blank, mask).crop((min_left, min_top, max_right, max_bottom))
+                    mask = mask.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+                    blank = Image.new("RGB", color=most_common, size=im.size)
+                    final_image = Image.composite(im, blank, mask).crop((min_left, min_top, max_right, max_bottom))
                     # final_image.show()
                     self.manager.article_images.append(final_image)
         else:
@@ -236,14 +257,6 @@ class ArticlePreviewScreen(Screen):
             aw = ArticleWidget()
             aw.add_article(a, self.ids.line_breaks_cb.active)
             self.ids.articles.add_widget(aw)
-
-    def change_line_breaks(self):
-        self.refresh_articles()
-
-    # def teste(self):
-    #     for w in self.ids.articles.children:
-    #         print(str(w.article_object))
-    #         # TODO Make this method add the articles to the manager's articles list
 
 class SaveScreen(Screen):
     def save(self, filepath, filename):
