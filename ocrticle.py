@@ -1,6 +1,6 @@
 """OCRticle - Structured OCR for articles"""
 
-__version__ = "0.1.1"
+__version__ = "0.1.3"
 
 import sys
 
@@ -12,7 +12,7 @@ from kivy.config import Config
 Config.set('graphics', 'width', 1366)
 Config.set('graphics', 'height', 768)
 
-from gui import OCRticleApp
+from src.gui import OCRticleApp
 
 import ctypes
 
