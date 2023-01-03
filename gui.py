@@ -4,8 +4,8 @@ from io import BytesIO
 
 from PIL import Image, ImageDraw, ImageEnhance
 
-from src.article import Article, BlockType
-import src.geometry
+from article import Article, BlockType
+import geometry
 
 from kivy.app import App
 from kivy.uix.widget import Widget
