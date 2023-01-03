@@ -1,4 +1,5 @@
 import sys
+import os
 
 import kivy
 kivy.require('2.1.0') # replace with your current kivy version !
@@ -8,7 +9,7 @@ from kivy.config import Config
 Config.set('graphics', 'width', 1366)
 Config.set('graphics', 'height', 768)
 
-from gui import MainApp
+from ocrticle.gui import MainApp
 
 import ctypes
 
