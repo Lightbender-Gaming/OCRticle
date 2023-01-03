@@ -21,4 +21,4 @@ dependencies = [
 exclude = ["OCR_Lab"]
 
 [project.scripts]
-ocrticle = "ocrticle:main"
+ocrticle = "main:main"

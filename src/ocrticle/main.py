@@ -1,7 +1,3 @@
-"""OCRticle - Structured OCR for articles"""
-
-__version__ = "0.1.4"
-
 import sys
 
 import kivy
@@ -12,7 +8,7 @@ from kivy.config import Config
 Config.set('graphics', 'width', 1366)
 Config.set('graphics', 'height', 768)
 
-from src.gui import OCRticleApp
+from gui import MainApp
 
 import ctypes
 
@@ -23,7 +19,7 @@ if sys.platform == "win32":
     libbytiff.TIFFSetWarningHandler(None)
 
 def main():
-    app = OCRticleApp()
+    app = MainApp()
     app.default_image = sys.argv[1] if len(sys.argv) > 1 else None
     app.run()
 

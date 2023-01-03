@@ -340,7 +340,7 @@ class ArticleWidget(GridLayout):
             f.add_widget(b)
             self.add_widget(f)
 
-class OCRticleApp(App):
+class MainApp(App):
 
     def build(self):
         sm = MyScreenManager()
