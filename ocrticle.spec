@@ -6,10 +6,10 @@ block_cipher = None
 
 
 a = Analysis(
-    ['src\\ocrticle.py'],
+    ['src\\ocrticle\\main.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('src\\ocrticle\\*.kv','.')],
     hiddenimports=['win32timezone'],
     hookspath=[],
     hooksconfig={},
@@ -23,30 +23,23 @@ a = Analysis(
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
-    pyz,
+    pyz, Tree('src\\ocrticle\\'),
     a.scripts,
-    [],
-    exclude_binaries=True,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    *[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)],
     name='ocrticle',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
+    upx_exclude=[],
+    runtime_tmpdir=None,
     console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-)
-coll = COLLECT(
-    exe, Tree('src'),
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    *[Tree(p) for p in (sdl2.dep_bins + glew.dep_bins)],
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    name='ocrticle',
 )

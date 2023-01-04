@@ -5,7 +5,7 @@ from io import BytesIO
 from PIL import Image, ImageDraw, ImageEnhance
 
 from ocrticle.article import Article, BlockType
-import ocrticle.geometry
+import ocrticle.geometry as geometry
 
 from kivy.app import App
 from kivy.uix.widget import Widget
@@ -340,7 +340,7 @@ class ArticleWidget(GridLayout):
             f.add_widget(b)
             self.add_widget(f)
 
-class MainApp(App):
+class OCRticleApp(App):
 
     def build(self):
         sm = MyScreenManager()
