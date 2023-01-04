@@ -10,7 +10,7 @@
             size_hint: (1,0.2)
         FileChooserIconView:
             id: filechooser
-            path: "."
+            path: path.expanduser('~')
             on_selection: select_file_btn.disabled = False
             filters: ["*.png", "*.jpg", "*.jpeg", "*.bmp", "*.gif", "*.tiff", "*.tif"]
             on_submit:

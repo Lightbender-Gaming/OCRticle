@@ -14,7 +14,7 @@ class BlockType(Enum):
 class Article():
 
     def __init__(self, image) -> None:
-        df : pd.DataFrame = pytesseract.image_to_data(image, lang='por', output_type=pytesseract.Output.DATAFRAME)
+        df : pd.DataFrame = pytesseract.image_to_data(image, lang='por+eng', output_type=pytesseract.Output.DATAFRAME)
 
         with open('log.csv','w',encoding='UTF-8') as f:
             df.to_csv(f,index=False)
