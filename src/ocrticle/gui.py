@@ -60,7 +60,7 @@ class ImagePreviewScreen(Screen):
         self.current_mode = "A"
         self.rectangles_articles = []
         self.rectangles_exclude = []
-        self.original_image = Image.open(self.manager.image_source)
+        self.original_image = Image.open(self.manager.image_source).convert("RGB")
         self.preview = self.original_image.copy()
         self.preview.thumbnail((1200, 1200))
         self.show_image()

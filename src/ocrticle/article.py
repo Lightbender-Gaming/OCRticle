@@ -44,8 +44,9 @@ class Article():
             self.optimize()
                 
         font_sizes = sorted(((i,x.get_line_height()) for i,x in enumerate(self.blocks) if len(x.paragraphs) == 1), reverse=True, key=lambda x: x[1])
+        print(font_sizes)
 
-        if len(font_sizes) > 1 and font_sizes[0][1] > font_sizes[1][1] + 5:
+        if len(font_sizes) == 1 or font_sizes[0][1] > font_sizes[1][1] + 3:
             self.blocks[font_sizes[0][0]].type = BlockType.TITLE
 
     def __str__(self) -> str:
