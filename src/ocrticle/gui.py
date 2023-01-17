@@ -14,6 +14,7 @@ from kivy.uix.textinput import TextInput
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.floatlayout import FloatLayout
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.button import Button
 from kivy.uix.filechooser import FileChooserIconView
@@ -254,7 +255,7 @@ class ArticlePreviewScreen(Screen):
     def refresh_articles(self):
         self.ids.articles.clear_widgets()
         for a in self.manager.articles:
-            aw = ArticleWidget()
+            aw = ArticleWidget(self)
             aw.add_article(a, self.ids.line_breaks_cb.active)
             self.ids.articles.add_widget(aw)
 
@@ -300,6 +301,10 @@ class ArticleWidget(GridLayout):
     ls = ListProperty()
     dds = ListProperty()
 
+    def __init__(self, screen):
+        super().__init__()
+        self.screen = screen
+
     def change_dd(self, btn, instance, x):
         bt = BlockType[x]
         self.article_object.blocks[btn.i].type = BlockType[x]
@@ -312,6 +317,13 @@ class ArticleWidget(GridLayout):
     def select_option(self, dd, btn):
         dd.select(btn.text)
 
+    def merge_articles(self, btn):
+        n = btn.block_n
+        blck = self.article_object.blocks.pop(n)
+        self.article_object.blocks[n - 1].paragraphs.extend(blck.paragraphs)
+        self.article_object.blocks[n - 1].optimize()
+        self.screen.refresh_articles()
+        
     def add_article(self, article, keep_line_breaks = False):
         self.ls = []
         self.dds = []
@@ -322,7 +334,7 @@ class ArticleWidget(GridLayout):
                 font_size = sp(25)
             else:
                 font_size = sp(20)
-            l = MyLabel(text=t, font_size=font_size)
+            l = MyLabel(text=t, font_size=font_size, size_hint=(0.80, None))
             self.add_widget(l)
             self.ls.append(l)
             dd = DropDown()
@@ -331,14 +343,26 @@ class ArticleWidget(GridLayout):
                 btn = Button(text=t.name, size_hint_y=None, height=44)
                 btn.bind(on_release=partial(self.select_option, dd))
                 dd.add_widget(btn)
-            b = Button(text=block.type.name, size_hint=(None, None), height=44, pos_hint={'right': 1, 'top': 1})
+            b = Button(text=block.type.name, size_hint=(None, None), height=44, pos_hint={'x': 0, 'top': 1})
             b.i = i
             b.bind(on_release=dd.open)
             dd.bind(on_select=partial(self.change_dd, b))
 
-            f = FloatLayout(size_hint=(0.1, 1))
-            f.add_widget(b)
-            self.add_widget(f)
+            fl = FloatLayout(size_hint=(0.20, 1))
+            fl.add_widget(b)
+
+            if i > 0:
+                merge_btn = Button(text="/\ Merge above",
+                    height=44,
+                    width=112,
+                    size_hint=(None,None), 
+                    pos_hint={'right': 1, 'top': 1},
+                    background_color=[1,1,0,1],)
+                merge_btn.block_n = i
+                merge_btn.bind(on_release=self.merge_articles)
+                fl.add_widget(merge_btn)
+
+            self.add_widget(fl)
 
 class OCRticleApp(App):
 

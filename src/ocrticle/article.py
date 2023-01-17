@@ -1,9 +1,11 @@
 from statistics import median
-from string import ascii_lowercase
+import string
 from enum import Enum
 
 import pandas as pd
 import pytesseract
+
+ascii_lowercase = string.ascii_lowercase + "çãáàéêíóõôú"
 
 class BlockType(Enum):
     TITLE = 0
