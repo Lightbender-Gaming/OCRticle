@@ -6,3 +6,4 @@ dist/
 log.csv
 *.md
 !README.md
+src/ocrticle/.env.*

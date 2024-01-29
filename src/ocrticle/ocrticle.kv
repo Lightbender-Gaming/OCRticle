@@ -67,7 +67,7 @@
                                 text: "Select article"
                                 disabled_color: 1, 1, 1, 1
                                 disabled: True
-                                on_press: 
+                                on_press:
                                     root.current_mode = 'A'
                                     self.disabled = True
                                     exclude_btn.disabled = False
@@ -81,7 +81,7 @@
                                 id: exclude_btn
                                 disabled_color: 1, 1, 1, 1
                                 text: "Exclude from article"
-                                on_press: 
+                                on_press:
                                     root.current_mode = 'E'
                                     self.disabled = True
                                     article_btn.disabled = False
@@ -193,7 +193,7 @@
                     halign: 'center'
                     size: self.texture_size
                     text: "Save article(s)"
-                    on_press: 
+                    on_press:
                         root.manager.current = "save"
                 FloatLayout:
                     x: self.parent.center_x + 150
@@ -255,7 +255,7 @@
                     width: 80
                     center: self.parent.center
                     on_release: root.save(filechooser.path, text_input.text)
-        
+
 <MyTextInput>:
     multiline: True
     size_hint_y: None
@@ -283,7 +283,7 @@
     spacing: 0, 20
     padding: 3, 1
     canvas.before:
-        Color: 
+        Color:
             rgb: 0.9,0.9,0.9
         Rectangle:
             size: root.size
